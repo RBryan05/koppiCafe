@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "304131951851",
+    "project_id": "proyecto-dwam",
+    "storage_bucket": "proyecto-dwam.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:304131951851:android:243726eae2b2516a0bc2ae",
+        "android_client_info": {
+          "package_name": "com.grupo5.cafeteriaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwN6miOhm3hEMqJyvUqo_ccIvm5cX2KII"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
