@@ -31,7 +31,8 @@ fun DetalleProductoScreen(
     viewModel: ProductoViewModel,
     onEditar: () -> Unit,
     onEliminar: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isAdmin: Boolean
 ) {
     val productos by viewModel.productos.collectAsState()
     val prod = productos.find { it.id == productoId }
@@ -58,8 +59,10 @@ fun DetalleProductoScreen(
                 title = { Text("Detalle", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
                 actions = {
-                    IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, null, tint = Color.White) }
-                    IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Delete, null, tint = Color.White) }
+                    if (isAdmin) {
+                        IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, null, tint = Color.White) }
+                        IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Delete, null, tint = Color.White) }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF6D4C41),
@@ -121,15 +124,27 @@ fun DetalleProductoScreen(
                             DetalleRow("Stock disponible", "${it.stock} unidades")
                         }
                     }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(onClick = onEditar, modifier = Modifier.weight(1f).height(50.dp), shape = RoundedCornerShape(12.dp)) {
-                            Icon(Icons.Default.Edit, null); Spacer(Modifier.width(6.dp)); Text("Editar")
-                        }
-                        Button(onClick = { showDialog = true }, modifier = Modifier.weight(1f).height(50.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))) {
-                            Icon(Icons.Default.Delete, null); Spacer(Modifier.width(6.dp)); Text("Eliminar")
+                    if (isAdmin) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedButton(
+                                onClick = onEditar,
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Edit, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Editar")
+                            }
+                            Button(
+                                onClick = { showDialog = true },
+                                modifier = Modifier.weight(1f).height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                            ) {
+                                Icon(Icons.Default.Delete, null)
+                                Spacer(Modifier.width(6.dp))
+                                Text("Eliminar")
+                            }
                         }
                     }
                 }

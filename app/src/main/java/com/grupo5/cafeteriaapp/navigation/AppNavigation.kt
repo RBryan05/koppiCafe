@@ -1,6 +1,8 @@
 package com.grupo5.cafeteriaapp.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -8,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.grupo5.cafeteriaapp.ui.screens.auth.LoginScreen
+import com.grupo5.cafeteriaapp.ui.screens.auth.RegisterScreen
 import com.grupo5.cafeteriaapp.ui.screens.dashboard.DashboardScreen
 import com.grupo5.cafeteriaapp.ui.screens.dashboard.InventarioScreen
 import com.grupo5.cafeteriaapp.ui.screens.perfil.PerfilScreen
@@ -21,6 +24,7 @@ import com.grupo5.cafeteriaapp.viewmodel.ThemeViewModel
 
 object Routes {
     const val LOGIN = "login"
+    const val REGISTER = "register"
     const val DASHBOARD = "dashboard"
     const val LISTA_PRODUCTOS = "lista_productos"
     const val CREAR_PRODUCTO = "crear_producto"
@@ -38,6 +42,7 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
     val navController = rememberNavController()
     val prodViewModel: ProductoViewModel = viewModel()
     val startDestination = if (authViewModel.isLoggedIn) Routes.DASHBOARD else Routes.LOGIN
+    val isAdmin by authViewModel.isAdmin.collectAsState()
 
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -48,7 +53,22 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
                     navController.navigate(Routes.DASHBOARD) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
+                },
+                onNavigateToRegister = {
+                    navController.navigate(Routes.REGISTER)
                 }
+            )
+        }
+
+        composable(Routes.REGISTER) {
+            RegisterScreen(
+                viewModel = authViewModel,
+                onRegisterSuccess = {
+                    navController.navigate(Routes.DASHBOARD) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                },
+                onBackToLogin = { navController.popBackStack() }
             )
         }
 
@@ -64,7 +84,8 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
                     }
                 },
                 productoViewModel = prodViewModel,
-                themeViewModel = themeViewModel
+                themeViewModel = themeViewModel,
+                isAdmin = isAdmin
             )
         }
 
@@ -73,33 +94,41 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
                 viewModel = prodViewModel,
                 onAgregar = { navController.navigate(Routes.CREAR_PRODUCTO) },
                 onDetalle = { id -> navController.navigate(Routes.detalleProducto(id)) },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                isAdmin = isAdmin
             )
         }
 
+        // Solo admin puede llegar aquí
         composable(Routes.CREAR_PRODUCTO) {
-            CrearProductoScreen(
-                viewModel = prodViewModel,
-                onSuccess = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
-            )
+            if (isAdmin) {
+                CrearProductoScreen(
+                    viewModel = prodViewModel,
+                    onSuccess = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
+                navController.popBackStack()
+            }
         }
 
-        // ✅ navArgument agregado
         composable(
             route = Routes.EDITAR_PRODUCTO,
             arguments = listOf(navArgument("id") { type = NavType.StringType })
         ) { backStack ->
             val id = backStack.arguments?.getString("id") ?: ""
-            EditarProductoScreen(
-                productoId = id,
-                viewModel = prodViewModel,
-                onSuccess = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
-            )
+            if (isAdmin) {
+                EditarProductoScreen(
+                    productoId = id,
+                    viewModel = prodViewModel,
+                    onSuccess = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            } else {
+                navController.popBackStack()
+            }
         }
 
-        // ✅ navArgument agregado
         composable(
             route = Routes.DETALLE_PRODUCTO,
             arguments = listOf(navArgument("id") { type = NavType.StringType })
@@ -110,7 +139,8 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
                 viewModel = prodViewModel,
                 onEditar = { navController.navigate(Routes.editarProducto(id)) },
                 onEliminar = { navController.popBackStack() },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                isAdmin = isAdmin
             )
         }
 

@@ -22,6 +22,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 import com.grupo5.cafeteriaapp.viewmodel.ThemeViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Image
+import com.grupo5.cafeteriaapp.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +34,8 @@ fun DashboardScreen(
     onNavigatePerfil: () -> Unit,
     onLogout: () -> Unit,
     productoViewModel: ProductoViewModel,
-    themeViewModel: ThemeViewModel
+    themeViewModel: ThemeViewModel,
+    isAdmin: Boolean  // <- agrega este
 ) {
     val productos by productoViewModel.productos.collectAsState()
     LaunchedEffect(Unit) { productoViewModel.cargarProductos() }
@@ -70,7 +74,15 @@ fun DashboardScreen(
                             Icon(Icons.Default.Person, null, tint = Color.White, modifier = Modifier.size(36.dp))
                         }
                         Spacer(Modifier.height(12.dp))
-                        Text("☕ KoppiCafé", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_coffee),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("KoppiCafé", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        }
                         Text(userEmail, color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                     }
                 }
@@ -140,7 +152,17 @@ fun DashboardScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("☕ KoppiCafé", fontWeight = FontWeight.Bold) },
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_coffee),
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("KoppiCafé", fontWeight = FontWeight.Bold)
+                        }
+                    },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, null, tint = Color.White)
@@ -166,10 +188,26 @@ fun DashboardScreen(
                         .background(Brush.verticalGradient(colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E)))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("☕", fontSize = 48.sp)
-                        Spacer(Modifier.height(8.dp))
-                        Text("¡Bienvenido a KoppiCafé!", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(160.dp)
+                            .background(Brush.verticalGradient(colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E)))),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Image(
+                                painter = painterResource(id = R.drawable.ic_coffee),
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text("¡Bienvenido a KoppiCafé!", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                if (isAdmin) "Administrador" else "Cliente",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 13.sp
+                            )
+                        }
                     }
                 }
 

@@ -19,10 +19,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.grupo5.cafeteriaapp.R
 import com.grupo5.cafeteriaapp.data.model.Producto
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 
@@ -32,7 +34,8 @@ fun ListaProductosScreen(
     viewModel: ProductoViewModel,
     onAgregar: () -> Unit,
     onDetalle: (String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    isAdmin: Boolean
 ) {
     val productos by viewModel.productos.collectAsState()
     var query by remember { mutableStateOf("") }
@@ -56,8 +59,10 @@ fun ListaProductosScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAgregar, containerColor = Color(0xFF6D4C41)) {
-                Icon(Icons.Default.Add, null, tint = Color.White)
+            if (isAdmin) {
+                FloatingActionButton(onClick = onAgregar, containerColor = Color(0xFF6D4C41)) {
+                    Icon(Icons.Default.Add, null, tint = Color.White)
+                }
             }
         }
     ) { padding ->
@@ -127,11 +132,21 @@ fun ProductoItem(producto: Producto, onClick: () -> Unit) {
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("$${producto.precio}", fontWeight = FontWeight.Bold, color = Color(0xFF6D4C41))
-                Text(
-                    if (producto.disponible) "✓ Disponible" else "✗ No disponible",
-                    fontSize = 11.sp,
-                    color = if (producto.disponible) Color(0xFF2E7D32) else Color.Red
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Image(
+                        painter = painterResource(
+                            id = if (producto.disponible) R.drawable.ic_check else R.drawable.ic_close
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        if (producto.disponible) "Disponible" else "No disponible",
+                        fontSize = 11.sp,
+                        color = if (producto.disponible) Color(0xFF2E7D32) else Color.Red
+                    )
+                }
             }
         }
     }
