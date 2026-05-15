@@ -96,9 +96,11 @@ fun DashboardScreen(
                     scope.launch { drawerState.close() }
                     onNavigateProductos()
                 }
-                DrawerItem(Icons.Default.Inventory, "Inventario", Color(0xFF2E7D32)) {
-                    scope.launch { drawerState.close() }
-                    onNavigateInventario()
+                if (isAdmin) {
+                    DrawerItem(Icons.Default.Inventory, "Inventario", Color(0xFF2E7D32)) {
+                        scope.launch { drawerState.close() }
+                        onNavigateInventario()
+                    }
                 }
                 DrawerItem(Icons.Default.Person, "Mi Perfil", Color(0xFF6A1B9A)) {
                     scope.launch { drawerState.close() }
@@ -220,12 +222,29 @@ fun DashboardScreen(
                 Spacer(Modifier.height(12.dp))
 
                 Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ModuloCard("Productos", "Gestionar menú y productos de la cafetería",
-                        Icons.Default.Coffee, Color(0xFF6D4C41), onNavigateProductos)
-                    ModuloCard("Inventario", "Ver stock y productos con bajo inventario",
-                        Icons.Default.Inventory, Color(0xFF2E7D32), onNavigateInventario)
-                    ModuloCard("Mi Perfil", "Ver cuenta y cambiar contraseña",
-                        Icons.Default.Person, Color(0xFF6A1B9A), onNavigatePerfil)
+                    ModuloCard(
+                        titulo = "Productos",
+                        descripcion = if (isAdmin) "Gestionar menú y productos de la cafetería" else "Ver productos disponibles",
+                        iconRes = R.drawable.ic_module_productos,
+                        color = Color(0xFF6D4C41),
+                        onClick = onNavigateProductos
+                    )
+                    if (isAdmin) {
+                        ModuloCard(
+                            titulo = "Inventario",
+                            descripcion = "Ver stock y productos con bajo inventario",
+                            iconRes = R.drawable.ic_module_inventario,
+                            color = Color(0xFF2E7D32),
+                            onClick = onNavigateInventario
+                        )
+                    }
+                    ModuloCard(
+                        titulo = "Mi Perfil",
+                        descripcion = "Ver cuenta y cambiar contraseña",
+                        iconRes = R.drawable.ic_module_perfil,
+                        color = Color(0xFF6A1B9A),
+                        onClick = onNavigatePerfil
+                    )
                 }
 
                 Spacer(Modifier.height(24.dp))
@@ -267,7 +286,7 @@ fun DrawerItem(icono: ImageVector, titulo: String, color: Color, onClick: () -> 
 }
 
 @Composable
-fun ModuloCard(titulo: String, descripcion: String, icono: ImageVector, color: Color, onClick: () -> Unit) {
+fun ModuloCard(titulo: String, descripcion: String, iconRes: Int, color: Color, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
@@ -278,7 +297,11 @@ fun ModuloCard(titulo: String, descripcion: String, icono: ImageVector, color: C
                 modifier = Modifier.size(56.dp).background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icono, null, tint = color, modifier = Modifier.size(30.dp))
+                Image(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = titulo,
+                    modifier = Modifier.size(30.dp)
+                )
             }
             Column {
                 Text(titulo, fontWeight = FontWeight.Bold, fontSize = 18.sp)
