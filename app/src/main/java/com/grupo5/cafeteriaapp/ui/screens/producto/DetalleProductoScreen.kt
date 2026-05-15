@@ -21,7 +21,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberAsyncImagePainter // Carga imagen desde ruta local o URL
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,9 +35,11 @@ fun DetalleProductoScreen(
     isAdmin: Boolean
 ) {
     val productos by viewModel.productos.collectAsState()
+    // Busca el producto por ID en la lista del ViewModel
     val prod = productos.find { it.id == productoId }
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) } // Controla el diálogo de confirmación de eliminación
 
+    // Diálogo de confirmación antes de eliminar el producto
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -58,6 +60,7 @@ fun DetalleProductoScreen(
             TopAppBar(
                 title = { Text("Detalle", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                // Botones de editar y eliminar solo visibles para admin
                 actions = {
                     if (isAdmin) {
                         IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, null, tint = Color.White) }
@@ -72,9 +75,11 @@ fun DetalleProductoScreen(
             )
         }
     ) { padding ->
+        // Solo renderiza si el producto fue encontrado
         prod?.let {
             Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())) {
-                // Imagen grande
+
+                // Imagen grande del producto con badges superpuestos
                 Box(
                     modifier = Modifier.fillMaxWidth().height(240.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -86,7 +91,8 @@ fun DetalleProductoScreen(
                     } else {
                         Icon(Icons.Default.Coffee, null, tint = Color(0xFF6D4C41), modifier = Modifier.size(80.dp))
                     }
-                    // Badge categoría
+
+                    // Badge de categoría en la esquina inferior izquierda
                     Box(
                         modifier = Modifier.align(Alignment.BottomStart).padding(12.dp)
                             .clip(RoundedCornerShape(20.dp)).background(Color(0xFF6D4C41))
@@ -94,7 +100,8 @@ fun DetalleProductoScreen(
                     ) {
                         Text(it.categoria, color = Color.White, fontSize = 12.sp)
                     }
-                    // Badge disponibilidad
+
+                    // Badge de disponibilidad en la esquina inferior derecha; verde o rojo según estado
                     Box(
                         modifier = Modifier.align(Alignment.BottomEnd).padding(12.dp)
                             .clip(RoundedCornerShape(20.dp))
@@ -106,15 +113,19 @@ fun DetalleProductoScreen(
                 }
 
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+
+                    // Nombre del producto y precio en la misma fila
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically) {
                         Text(it.nombre, fontSize = 22.sp, fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
+                        // Precio formateado con separador de miles y 2 decimales
                         Text("$${"%,.2f".format(it.precio)}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6D4C41))
                     }
 
                     Divider(color = MaterialTheme.colorScheme.outline)
 
+                    // Tarjeta con descripción y stock
                     Card(
                         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -124,6 +135,8 @@ fun DetalleProductoScreen(
                             DetalleRow("Stock disponible", "${it.stock} unidades")
                         }
                     }
+
+                    // Botones de editar/eliminar solo visibles para admin
                     if (isAdmin) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             OutlinedButton(
@@ -153,6 +166,7 @@ fun DetalleProductoScreen(
     }
 }
 
+// Fila reutilizable de label + valor para mostrar datos del producto
 @Composable
 fun DetalleRow(label: String, value: String) {
     androidx.compose.foundation.layout.Row(

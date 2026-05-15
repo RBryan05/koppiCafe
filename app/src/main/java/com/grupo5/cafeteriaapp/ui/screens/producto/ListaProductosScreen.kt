@@ -33,13 +33,14 @@ import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 fun ListaProductosScreen(
     viewModel: ProductoViewModel,
     onAgregar: () -> Unit,
-    onDetalle: (String) -> Unit,
+    onDetalle: (String) -> Unit, // Recibe el ID del producto seleccionado
     onBack: () -> Unit,
     isAdmin: Boolean
 ) {
     val productos by viewModel.productos.collectAsState()
-    var query by remember { mutableStateOf("") }
+    var query by remember { mutableStateOf("") } // Texto de búsqueda
 
+    // Filtra productos cuyo nombre contenga el texto buscado (sin distinción de mayúsculas)
     val filtrados = productos.filter { it.nombre.contains(query, ignoreCase = true) }
 
     LaunchedEffect(Unit) { viewModel.cargarProductos() }
@@ -48,9 +49,7 @@ fun ListaProductosScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Productos", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) }
-                },
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFF6D4C41),
                     titleContentColor = Color.White,
@@ -58,6 +57,7 @@ fun ListaProductosScreen(
                 )
             )
         },
+        // FAB de agregar solo visible para admins
         floatingActionButton = {
             if (isAdmin) {
                 FloatingActionButton(onClick = onAgregar, containerColor = Color(0xFF6D4C41)) {
@@ -67,6 +67,8 @@ fun ListaProductosScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+
+            // Campo de búsqueda en tiempo real
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it },
@@ -82,6 +84,7 @@ fun ListaProductosScreen(
             )
 
             if (filtrados.isEmpty()) {
+                // Mensaje vacío: diferencia entre lista vacía y sin resultados de búsqueda
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -102,6 +105,7 @@ fun ListaProductosScreen(
     }
 }
 
+// Tarjeta de producto en la lista: imagen, nombre, categoría, precio y disponibilidad
 @Composable
 fun ProductoItem(producto: Producto, onClick: () -> Unit) {
     Card(
@@ -110,29 +114,29 @@ fun ProductoItem(producto: Producto, onClick: () -> Unit) {
         elevation = CardDefaults.cardElevation(3.dp)
     ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            // Imagen del producto o ícono por defecto
             Box(
                 modifier = Modifier.size(64.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFFFBE9E7)),
                 contentAlignment = Alignment.Center
             ) {
                 if (!producto.imagenUrl.isNullOrBlank()) {
-                    Image(
-                        painter = rememberAsyncImagePainter(producto.imagenUrl),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                    Image(painter = rememberAsyncImagePainter(producto.imagenUrl), contentDescription = null,
+                        contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                 } else {
                     Icon(Icons.Default.Coffee, null, tint = Color(0xFF6D4C41), modifier = Modifier.size(32.dp))
                 }
             }
             Spacer(Modifier.width(12.dp))
+            // Nombre y categoría
             Column(modifier = Modifier.weight(1f)) {
                 Text(producto.nombre, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(producto.categoria, fontSize = 13.sp, color = Color.Gray)
             }
+            // Precio y disponibilidad alineados a la derecha
             Column(horizontalAlignment = Alignment.End) {
                 Text("$${producto.precio}", fontWeight = FontWeight.Bold, color = Color(0xFF6D4C41))
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Ícono check o close según disponibilidad
                     Image(
                         painter = painterResource(
                             id = if (producto.disponible) R.drawable.ic_check else R.drawable.ic_close

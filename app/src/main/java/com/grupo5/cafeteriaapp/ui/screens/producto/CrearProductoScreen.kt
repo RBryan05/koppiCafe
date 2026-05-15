@@ -27,10 +27,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.grupo5.cafeteriaapp.data.model.Producto
-import com.grupo5.cafeteriaapp.utils.guardarImagenInterna
+import com.grupo5.cafeteriaapp.utils.guardarImagenInterna // Utilidad para guardar la imagen localmente
 import com.grupo5.cafeteriaapp.viewmodel.EstadoOperacion
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 
+// Lista de categorías disponibles para asignar a un producto
 val categoriasCafeteria = listOf(
     "Bebidas Calientes", "Bebidas Frías", "Jugos Naturales",
     "Postres", "Pasteles y Repostería", "Sandwiches",
@@ -44,22 +45,25 @@ fun CrearProductoScreen(
     onSuccess: () -> Unit,
     onBack: () -> Unit
 ) {
+    // Estados del formulario
     var nombre by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var precio by remember { mutableStateOf("") }
     var stock by remember { mutableStateOf("") }
     var categoria by remember { mutableStateOf("") }
     var disponible by remember { mutableStateOf(true) }
-    var expandedCategoria by remember { mutableStateOf(false) }
-    var imagenUri by remember { mutableStateOf<Uri?>(null) }
+    var expandedCategoria by remember { mutableStateOf(false) } // Controla el dropdown de categoría
+    var imagenUri by remember { mutableStateOf<Uri?>(null) }    // URI de la imagen seleccionada
 
     val estado by viewModel.estado.collectAsState()
     val context = LocalContext.current
 
+    // Lanzador para abrir el selector de imágenes del dispositivo
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imagenUri = uri
     }
 
+    // Cuando la operación es exitosa, resetea el estado y navega hacia atrás
     LaunchedEffect(estado) {
         if (estado is EstadoOperacion.Success) { viewModel.resetEstado(); onSuccess() }
     }
@@ -82,6 +86,8 @@ fun CrearProductoScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Imagen del producto", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
+
+            // Preview de la imagen: muestra la seleccionada o un placeholder
             Box(
                 modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
@@ -98,6 +104,8 @@ fun CrearProductoScreen(
                     }
                 }
             }
+
+            // Botón que abre el selector; el texto cambia según si ya hay imagen
             OutlinedButton(onClick = { imagePicker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.AddPhotoAlternate, null)
                 Spacer(Modifier.width(8.dp))
@@ -108,17 +116,20 @@ fun CrearProductoScreen(
                 label = { Text("Nombre del producto") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(value = descripcion, onValueChange = { descripcion = it },
                 label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth(), maxLines = 3)
+            // Teclado decimal para el precio
             OutlinedTextField(value = precio, onValueChange = { precio = it },
                 label = { Text("Precio ($)") }, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+            // Teclado numérico para el stock
             OutlinedTextField(value = stock, onValueChange = { stock = it },
                 label = { Text("Stock (unidades)") }, modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
 
+            // Dropdown de categorías con ExposedDropdownMenuBox de Material3
             ExposedDropdownMenuBox(expanded = expandedCategoria, onExpandedChange = { expandedCategoria = !expandedCategoria }) {
                 OutlinedTextField(value = categoria, onValueChange = {}, readOnly = true,
                     label = { Text("Categoría") }, trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor())
+                    modifier = Modifier.fillMaxWidth().menuAnchor()) // menuAnchor vincula el campo con el menú
                 ExposedDropdownMenu(expanded = expandedCategoria, onDismissRequest = { expandedCategoria = false }) {
                     categoriasCafeteria.forEach { cat ->
                         DropdownMenuItem(text = { Text(cat) }, onClick = { categoria = cat; expandedCategoria = false })
@@ -126,7 +137,7 @@ fun CrearProductoScreen(
                 }
             }
 
-            // Toggle disponible
+            // Toggle para marcar si el producto está disponible en el menú
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Disponible en menú", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
@@ -136,16 +147,19 @@ fun CrearProductoScreen(
                 )
             }
 
+            // Muestra el error si la operación falló
             if (estado is EstadoOperacion.Error)
                 Text((estado as EstadoOperacion.Error).mensaje, color = Color.Red)
 
+            // Botón guardar: deshabilitado si nombre/categoría vacíos o está cargando
             Button(
                 onClick = {
+                    // Guarda la imagen localmente y obtiene la ruta; "" si no se seleccionó imagen
                     val rutaFinal = imagenUri?.let { guardarImagenInterna(context, it) } ?: ""
                     viewModel.agregarProducto(Producto(
                         nombre = nombre, descripcion = descripcion,
-                        precio = precio.toDoubleOrNull() ?: 0.0,
-                        stock = stock.toIntOrNull() ?: 0,
+                        precio = precio.toDoubleOrNull() ?: 0.0, // Fallback a 0.0 si el texto no es número
+                        stock = stock.toIntOrNull() ?: 0,        // Fallback a 0 si el texto no es número
                         categoria = categoria, disponible = disponible, imagenUrl = rutaFinal
                     ))
                 },

@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberAsyncImagePainter // Carga imagen local (Uri) de forma asíncrona
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,24 +35,28 @@ fun PerfilScreen(onBack: () -> Unit) {
     val auth = FirebaseAuth.getInstance()
     val user = auth.currentUser
     val context = LocalContext.current
+    // SharedPreferences para persistir la foto de perfil localmente entre sesiones
     val prefs = context.getSharedPreferences("cafeteria_prefs", Context.MODE_PRIVATE)
 
     var nuevaPassword by remember { mutableStateOf("") }
     var confirmarPassword by remember { mutableStateOf("") }
     var mensaje by remember { mutableStateOf("") }
     var mensajeColor by remember { mutableStateOf(Color(0xFF2E7D32)) }
-    var showDialog by remember { mutableStateOf(false) }
-    var mostrarCambioPassword by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }         // Controla el AlertDialog de confirmación
+    var mostrarCambioPassword by remember { mutableStateOf(false) } // Expande/colapsa la sección de contraseña
 
+    // Recupera la URI de la foto guardada en prefs; null si no hay foto guardada
     var fotoUri by remember {
         mutableStateOf(prefs.getString("foto_perfil", null)?.let { Uri.parse(it) })
     }
 
+    // Lanzador para abrir el selector de imágenes del dispositivo
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         fotoUri = uri
-        prefs.edit().putString("foto_perfil", uri?.toString()).apply()
+        prefs.edit().putString("foto_perfil", uri?.toString()).apply() // Persiste la URI seleccionada
     }
 
+    // Diálogo de confirmación antes de cambiar la contraseña en Firebase
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -63,11 +67,12 @@ fun PerfilScreen(onBack: () -> Unit) {
                     showDialog = false
                     user?.updatePassword(nuevaPassword)
                         ?.addOnSuccessListener {
-                            mensaje = "✅ Contraseña actualizada correctamente"
+                            mensaje = "Contraseña actualizada correctamente"
                             mensajeColor = Color(0xFF2E7D32)
+                            // Limpia los campos tras el éxito
                             nuevaPassword = ""; confirmarPassword = ""; mostrarCambioPassword = false
                         }
-                        ?.addOnFailureListener { mensaje = "❌ Error: ${it.message}"; mensajeColor = Color.Red }
+                        ?.addOnFailureListener { mensaje = "Error: ${it.message}"; mensajeColor = Color.Red }
                 }) { Text("Confirmar", color = Color(0xFF6D4C41)) }
             },
             dismissButton = { TextButton(onClick = { showDialog = false }) { Text("Cancelar") } }
@@ -88,11 +93,13 @@ fun PerfilScreen(onBack: () -> Unit) {
         }
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            modifier = Modifier.fillMaxSize().padding(padding)
+                .verticalScroll(rememberScrollState()) // Permite scroll si el contenido es largo
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Avatar con botón de foto
+            // Avatar circular con botón de cámara superpuesto en la esquina inferior derecha
             Box(contentAlignment = Alignment.BottomEnd) {
                 Box(
                     modifier = Modifier.size(100.dp).clip(CircleShape)
@@ -100,6 +107,7 @@ fun PerfilScreen(onBack: () -> Unit) {
                         .border(3.dp, Color(0xFF6D4C41), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
+                    // Muestra la foto elegida o un ícono por defecto
                     if (fotoUri != null) {
                         Image(painter = rememberAsyncImagePainter(fotoUri), contentDescription = null,
                             contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
@@ -107,6 +115,7 @@ fun PerfilScreen(onBack: () -> Unit) {
                         Icon(Icons.Default.Person, null, tint = Color(0xFF6D4C41), modifier = Modifier.size(52.dp))
                     }
                 }
+                // Botón circular de cámara que abre el selector de imágenes
                 IconButton(
                     onClick = { imagePicker.launch("image/*") },
                     modifier = Modifier.size(32.dp).background(Color(0xFF6D4C41), CircleShape)
@@ -118,7 +127,7 @@ fun PerfilScreen(onBack: () -> Unit) {
             Text(user?.email ?: "Usuario", fontSize = 16.sp, fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground)
 
-            // Info de cuenta
+            // Tarjeta con información básica de la cuenta
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -133,13 +142,14 @@ fun PerfilScreen(onBack: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Person, null, tint = Color(0xFF6D4C41))
                         Spacer(Modifier.width(8.dp))
+                        // Muestra solo los primeros 12 caracteres del UID para no saturar la UI
                         Text("UID: ${user?.uid?.take(12)}...", fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
                     }
                 }
             }
 
-            // Botón expandir/colapsar cambio de contraseña
+            // Botón que expande o colapsa la sección de cambio de contraseña
             OutlinedButton(onClick = { mostrarCambioPassword = !mostrarCambioPassword },
                 modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                 Icon(if (mostrarCambioPassword) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
@@ -147,6 +157,7 @@ fun PerfilScreen(onBack: () -> Unit) {
                 Text(if (mostrarCambioPassword) "Ocultar cambio de contraseña" else "Cambiar contraseña")
             }
 
+            // Sección expandible de cambio de contraseña
             if (mostrarCambioPassword) {
                 Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
@@ -167,11 +178,12 @@ fun PerfilScreen(onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(), singleLine = true,
                             colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Color(0xFF6D4C41), focusedLabelColor = Color(0xFF6D4C41)))
                         if (mensaje.isNotBlank()) Text(mensaje, color = mensajeColor, fontSize = 13.sp)
+                        // Validaciones antes de mostrar el diálogo de confirmación
                         Button(
                             onClick = {
                                 when {
-                                    nuevaPassword.length < 6 -> { mensaje = "❌ Mínimo 6 caracteres"; mensajeColor = Color.Red }
-                                    nuevaPassword != confirmarPassword -> { mensaje = "❌ Las contraseñas no coinciden"; mensajeColor = Color.Red }
+                                    nuevaPassword.length < 6 -> { mensaje = "Mínimo 6 caracteres"; mensajeColor = Color.Red }
+                                    nuevaPassword != confirmarPassword -> { mensaje = "Las contraseñas no coinciden"; mensajeColor = Color.Red }
                                     else -> showDialog = true
                                 }
                             },

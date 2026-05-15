@@ -21,7 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
+import coil.compose.AsyncImage              // Carga imágenes desde URL de forma asíncrona
 import com.grupo5.cafeteriaapp.R
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 
@@ -31,13 +31,17 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
     val productos by viewModel.productos.collectAsState()
     LaunchedEffect(Unit) { viewModel.cargarProductos() }
 
-    val stockBajo = productos.filter { it.stock < 5 }
+    // Clasificación de productos por nivel de stock
+    val stockBajo   = productos.filter { it.stock < 5 }
     val stockNormal = productos.filter { it.stock in 5..20 }
-    val stockAlto = productos.filter { it.stock > 20 }
+    val stockAlto   = productos.filter { it.stock > 20 }
 
+    // Agrupa productos por categoría y suma el stock de cada una, ordenado de mayor a menor
     val stockPorCategoria = productos.groupBy { it.categoria }
         .mapValues { entry -> entry.value.sumOf { it.stock } }
         .entries.sortedByDescending { it.value }
+
+    // Valor máximo de stock entre categorías; usado para calcular el ancho relativo de las barras
     val maxStock = stockPorCategoria.maxOfOrNull { it.value } ?: 1
 
     Scaffold(
@@ -46,7 +50,7 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                 title = { Text("Inventario", fontWeight = FontWeight.Bold) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF2E7D32),
+                    containerColor = Color(0xFF2E7D32), // Verde para diferenciar de otras pantallas
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -54,14 +58,15 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Chips resumen
+
+            // Fila de chips resumen (Bajo / Normal / Alto) con conteo de productos en cada nivel
             Row(
                 modifier = Modifier.fillMaxWidth().background(Color(0xFFF1F8E9)).padding(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                StockChip(R.drawable.ic_circle_red, "Bajo", stockBajo.size, Color(0xFFFFEBEE), Color(0xFFC62828))
+                StockChip(R.drawable.ic_circle_red,    "Bajo",   stockBajo.size,   Color(0xFFFFEBEE), Color(0xFFC62828))
                 StockChip(R.drawable.ic_circle_yellow, "Normal", stockNormal.size, Color(0xFFFFFDE7), Color(0xFFF9A825))
-                StockChip(R.drawable.ic_circle_green, "Alto", stockAlto.size, Color(0xFFE8F5E9), Color(0xFF2E7D32))
+                StockChip(R.drawable.ic_circle_green,  "Alto",   stockAlto.size,   Color(0xFFE8F5E9), Color(0xFF2E7D32))
             }
 
             if (productos.isEmpty()) {
@@ -74,7 +79,7 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    // Gráfica de barras por categoría
+                    // Primer ítem: gráfica de barras horizontal por categoría
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -82,21 +87,20 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                             elevation = CardDefaults.cardElevation(3.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    "Stock por Categoría", fontWeight = FontWeight.Bold, fontSize = 16.sp,
-                                    modifier = Modifier.padding(bottom = 12.dp)
-                                )
+                                Text("Stock por Categoría", fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                                    modifier = Modifier.padding(bottom = 12.dp))
+
                                 stockPorCategoria.forEach { (categoria, total) ->
+                                    // Porcentaje relativo al máximo para calcular el ancho de la barra
                                     val porcentaje = total.toFloat() / maxStock.toFloat()
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            categoria, fontSize = 11.sp, color = Color.Gray, maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis, modifier = Modifier.width(110.dp)
-                                        )
+                                        Text(categoria, fontSize = 11.sp, color = Color.Gray, maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis, modifier = Modifier.width(110.dp))
                                         Spacer(Modifier.width(8.dp))
+                                        // Barra de fondo (gris claro) con barra de progreso encima (café)
                                         Box(
                                             modifier = Modifier.weight(1f).height(20.dp)
                                                 .background(Color(0xFFFBE9E7), RoundedCornerShape(4.dp))
@@ -107,19 +111,21 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                                             )
                                         }
                                         Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            "$total", fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF6D4C41), modifier = Modifier.width(30.dp)
-                                        )
+                                        Text("$total", fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF6D4C41), modifier = Modifier.width(30.dp))
                                     }
                                 }
                             }
                         }
                     }
 
+                    // Lista de productos ordenada de menor a mayor stock
                     items(productos.sortedBy { it.stock }) { prod ->
+
+                        // Determina colores, etiqueta e ícono según el nivel de stock del producto
+                        // Se usa Quad porque Triple solo soporta 3 valores
                         val (bgColor, textColor, labelTexto, iconRes) = when {
-                            prod.stock < 5 -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Stock bajo")
+                            prod.stock < 5  -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "Stock bajo")
                                 .let { (a, b, c) -> Quad(a, b, c, R.drawable.ic_warning) }
                             prod.stock <= 20 -> Triple(Color(0xFFFFFDE7), Color(0xFFF9A825), "Stock normal")
                                 .let { (a, b, c) -> Quad(a, b, c, R.drawable.ic_circle_yellow) }
@@ -137,25 +143,26 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
+                                // Imagen del producto: AsyncImage si tiene URL, ícono por defecto si no
                                 Box(
                                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(10.dp))
                                         .background(Color(0xFFFBE9E7)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (prod.imagenUrl.isNotEmpty()) {
-                                        AsyncImage(
-                                            model = prod.imagenUrl, contentDescription = null,
-                                            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()
-                                        )
+                                        AsyncImage(model = prod.imagenUrl, contentDescription = null,
+                                            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                                     } else {
                                         Icon(Icons.Default.Coffee, null, tint = Color(0xFF6D4C41), modifier = Modifier.size(28.dp))
                                     }
                                 }
+
+                                // Nombre, categoría y disponibilidad del producto
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(prod.nombre, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                     Text(prod.categoria, fontSize = 12.sp, color = Color.Gray)
-                                    // Disponibilidad con PNG
                                     Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // Ícono check o close según disponibilidad
                                         Image(
                                             painter = painterResource(
                                                 id = if (prod.disponible) R.drawable.ic_check else R.drawable.ic_close
@@ -171,6 +178,8 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                                         )
                                     }
                                 }
+
+                                // Columna derecha: cantidad en stock y etiqueta de nivel
                                 Column(horizontalAlignment = Alignment.End) {
                                     Box(
                                         modifier = Modifier.background(bgColor, RoundedCornerShape(8.dp))
@@ -179,13 +188,8 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                                         Text("${prod.stock} uds", color = textColor, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     }
                                     Spacer(Modifier.height(4.dp))
-                                    // Etiqueta de stock con PNG
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Image(
-                                            painter = painterResource(id = iconRes),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(12.dp)
-                                        )
+                                        Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(12.dp))
                                         Spacer(Modifier.width(3.dp))
                                         Text(labelTexto, fontSize = 10.sp, color = textColor)
                                     }
@@ -199,9 +203,11 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
     }
 }
 
-// Data class auxiliar para 4 valores
+// Data class auxiliar para agrupar 4 valores heterogéneos en una desestructuración,
+// ya que Triple solo soporta 3. Se usa para (bgColor, textColor, label, iconRes)
 data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
+// Chip de resumen de stock: muestra un ícono PNG, la etiqueta y la cantidad de productos
 @Composable
 fun StockChip(iconRes: Int, label: String, cantidad: Int, bgColor: Color, textColor: Color) {
     Box(
@@ -210,11 +216,7 @@ fun StockChip(iconRes: Int, label: String, cantidad: Int, bgColor: Color, textCo
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(14.dp)
-            )
+            Image(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
             Text("$label: $cantidad", color = textColor, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }

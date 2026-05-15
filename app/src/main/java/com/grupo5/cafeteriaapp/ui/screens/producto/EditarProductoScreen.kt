@@ -27,7 +27,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.grupo5.cafeteriaapp.data.model.Producto
-import com.grupo5.cafeteriaapp.utils.guardarImagenInterna
+import com.grupo5.cafeteriaapp.utils.guardarImagenInterna // Utilidad para guardar imagen localmente
 import com.grupo5.cafeteriaapp.viewmodel.EstadoOperacion
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 
@@ -40,10 +40,12 @@ fun EditarProductoScreen(
     onBack: () -> Unit
 ) {
     val productos by viewModel.productos.collectAsState()
+    // Busca el producto actual por ID para pre-rellenar el formulario
     val prod = productos.find { it.id == productoId }
     val estado by viewModel.estado.collectAsState()
     val context = LocalContext.current
 
+    // Los estados se inicializan con los valores actuales del producto
     var nombre by remember { mutableStateOf(prod?.nombre ?: "") }
     var descripcion by remember { mutableStateOf(prod?.descripcion ?: "") }
     var precio by remember { mutableStateOf(prod?.precio?.toString() ?: "") }
@@ -51,14 +53,18 @@ fun EditarProductoScreen(
     var categoria by remember { mutableStateOf(prod?.categoria ?: "") }
     var disponible by remember { mutableStateOf(prod?.disponible ?: true) }
     var expandedCategoria by remember { mutableStateOf(false) }
+
+    // Si el producto ya tiene imagen, parsea la ruta a Uri; null si está en blanco
     var imagenUri by remember {
         mutableStateOf(prod?.imagenUrl?.let { if (it.isNotBlank()) Uri.parse(it) else null })
     }
 
+    // Lanzador para abrir el selector de imágenes del dispositivo
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         imagenUri = uri
     }
 
+    // Navega de vuelta al éxito y resetea el estado del ViewModel
     LaunchedEffect(estado) {
         if (estado is EstadoOperacion.Success) { viewModel.resetEstado(); onSuccess() }
     }
@@ -81,6 +87,8 @@ fun EditarProductoScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text("Imagen del producto", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
+
+            // Preview de imagen: muestra la actual/nueva o placeholder si no hay
             Box(
                 modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp)),
@@ -97,6 +105,8 @@ fun EditarProductoScreen(
                     }
                 }
             }
+
+            // Botón para cambiar o seleccionar imagen
             OutlinedButton(onClick = { imagePicker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.AddPhotoAlternate, null)
                 Spacer(Modifier.width(8.dp))
@@ -110,6 +120,7 @@ fun EditarProductoScreen(
             OutlinedTextField(value = stock, onValueChange = { stock = it }, label = { Text("Stock") },
                 modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
 
+            // Dropdown de categorías; reutiliza la lista definida en CrearProductoScreen
             ExposedDropdownMenuBox(expanded = expandedCategoria, onExpandedChange = { expandedCategoria = !expandedCategoria }) {
                 OutlinedTextField(value = categoria, onValueChange = {}, readOnly = true, label = { Text("Categoría") },
                     trailingIcon = { Icon(Icons.Default.ArrowDropDown, null) }, modifier = Modifier.fillMaxWidth().menuAnchor())
@@ -120,6 +131,7 @@ fun EditarProductoScreen(
                 }
             }
 
+            // Toggle de disponibilidad
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("Disponible en menú", fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onBackground)
@@ -132,12 +144,15 @@ fun EditarProductoScreen(
 
             Button(
                 onClick = {
+                    // Si la URI no empieza con "/" es una imagen nueva del picker; se guarda internamente
+                    // Si ya empieza con "/" es una ruta local existente; se usa directo
                     val rutaFinal = if (imagenUri != null && !imagenUri.toString().startsWith("/"))
                         guardarImagenInterna(context, imagenUri!!)
                     else imagenUri?.toString() ?: ""
                     viewModel.editarProducto(productoId, Producto(
                         id = productoId, nombre = nombre, descripcion = descripcion,
-                        precio = precio.toDoubleOrNull() ?: 0.0, stock = stock.toIntOrNull() ?: 0,
+                        precio = precio.toDoubleOrNull() ?: 0.0,
+                        stock = stock.toIntOrNull() ?: 0,
                         categoria = categoria, disponible = disponible, imagenUrl = rutaFinal
                     ))
                 },

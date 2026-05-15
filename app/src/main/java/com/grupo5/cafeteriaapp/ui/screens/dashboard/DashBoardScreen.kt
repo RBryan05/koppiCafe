@@ -6,22 +6,22 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.*             // Todos los íconos Material usados en la pantalla
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.ImageVector       // Tipo para pasar íconos como parámetro
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuth                // Para obtener el email del usuario actual
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 import com.grupo5.cafeteriaapp.viewmodel.ThemeViewModel
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.launch                           // Para abrir/cerrar el drawer de forma asíncrona
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import com.grupo5.cafeteriaapp.R
@@ -35,36 +35,41 @@ fun DashboardScreen(
     onLogout: () -> Unit,
     productoViewModel: ProductoViewModel,
     themeViewModel: ThemeViewModel,
-    isAdmin: Boolean  // <- agrega este
+    isAdmin: Boolean
 ) {
+    // Observa la lista de productos como StateFlow
     val productos by productoViewModel.productos.collectAsState()
+
+    // Carga los productos una sola vez al entrar a la pantalla
     LaunchedEffect(Unit) { productoViewModel.cargarProductos() }
 
+    // Estadísticas calculadas en tiempo real desde la lista de productos
     val totalProductos = productos.size
-    val totalCategorias = productos.map { it.categoria }.distinct().size
-    val totalStock = productos.sumOf { it.stock }
+    val totalCategorias = productos.map { it.categoria }.distinct().size // Categorías únicas
+    val totalStock = productos.sumOf { it.stock }                        // Suma total del stock
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()  // Scope para lanzar corrutinas (abrir/cerrar drawer)
     val userEmail = FirebaseAuth.getInstance().currentUser?.email ?: "Usuario"
     val isDark by themeViewModel.isDarkMode.collectAsState()
 
+    // Drawer lateral (menú hamburguesa)
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(modifier = Modifier.width(280.dp)) {
-                // Header del drawer
+
+                // Header del drawer con gradiente y datos del usuario
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E))
-                            )
-                        )
+                        .background(Brush.verticalGradient(
+                            colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E))
+                        ))
                         .padding(24.dp)
                 ) {
                     Column {
+                        // Avatar circular con ícono de persona
                         Box(
                             modifier = Modifier
                                 .size(64.dp)
@@ -89,6 +94,7 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(8.dp))
 
+                // Ítems del drawer; cierra el drawer antes de navegar
                 DrawerItem(Icons.Default.Home, "Inicio", Color(0xFF6D4C41)) {
                     scope.launch { drawerState.close() }
                 }
@@ -96,6 +102,7 @@ fun DashboardScreen(
                     scope.launch { drawerState.close() }
                     onNavigateProductos()
                 }
+                // Inventario solo visible para admins
                 if (isAdmin) {
                     DrawerItem(Icons.Default.Inventory, "Inventario", Color(0xFF2E7D32)) {
                         scope.launch { drawerState.close() }
@@ -109,7 +116,7 @@ fun DashboardScreen(
 
                 Divider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
 
-                // Toggle modo oscuro
+                // Toggle de modo oscuro/claro
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -119,6 +126,7 @@ fun DashboardScreen(
                             .background(Color(0xFF37474F).copy(alpha = 0.1f), RoundedCornerShape(10.dp)),
                         contentAlignment = Alignment.Center
                     ) {
+                        // El ícono cambia según el modo actual
                         Icon(
                             if (isDark) Icons.Default.LightMode else Icons.Default.DarkMode,
                             null,
@@ -130,6 +138,7 @@ fun DashboardScreen(
                         if (isDark) "Modo claro" else "Modo oscuro",
                         fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
                     )
+                    // El switch llama al ViewModel para invertir el tema
                     Switch(
                         checked = isDark,
                         onCheckedChange = { themeViewModel.toggleTheme() },
@@ -156,20 +165,18 @@ fun DashboardScreen(
                 TopAppBar(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_coffee),
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Image(painter = painterResource(id = R.drawable.ic_coffee), contentDescription = null, modifier = Modifier.size(20.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("KoppiCafé", fontWeight = FontWeight.Bold)
                         }
                     },
+                    // Botón hamburguesa que abre el drawer
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, null, tint = Color.White)
                         }
                     },
+                    // Botón de logout en la barra superior
                     actions = {
                         IconButton(onClick = onLogout) {
                             Icon(Icons.Default.ExitToApp, null)
@@ -184,32 +191,31 @@ fun DashboardScreen(
             }
         ) { padding ->
             Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-                // Banner superior
+                // Banner superior con gradiente
                 Box(
                     modifier = Modifier.fillMaxWidth().height(160.dp)
                         .background(Brush.verticalGradient(colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E)))),
                     contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(160.dp)
-                            .background(Brush.verticalGradient(colors = listOf(Color(0xFF6D4C41), Color(0xFFD7A86E)))),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_coffee),
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text("¡Bienvenido a KoppiCafé!", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                if (isAdmin) "Administrador" else "Cliente",
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 13.sp
-                            )
-                        }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_coffee),
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp)
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "¡Bienvenido a KoppiCafé!",
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        // Muestra rol del usuario debajo del saludo
+                        Text(
+                            if (isAdmin) "Administrador" else "Cliente",
+                            color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp
+                        )
                     }
                 }
 
@@ -221,6 +227,7 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(12.dp))
 
+                // Tarjetas de módulos; Inventario solo aparece para admin
                 Column(modifier = Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     ModuloCard(
                         titulo = "Productos",
@@ -255,6 +262,7 @@ fun DashboardScreen(
 
                 Spacer(Modifier.height(12.dp))
 
+                // Tres tarjetas de estadísticas en fila con peso igual (weight(1f))
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -268,6 +276,7 @@ fun DashboardScreen(
     }
 }
 
+// Ítem reutilizable del drawer lateral con ícono, título y color personalizables
 @Composable
 fun DrawerItem(icono: ImageVector, titulo: String, color: Color, onClick: () -> Unit) {
     Row(
@@ -285,6 +294,7 @@ fun DrawerItem(icono: ImageVector, titulo: String, color: Color, onClick: () -> 
     }
 }
 
+// Tarjeta de módulo clicable con ícono desde recursos drawable, título y descripción
 @Composable
 fun ModuloCard(titulo: String, descripcion: String, iconRes: Int, color: Color, onClick: () -> Unit) {
     Card(
@@ -297,11 +307,7 @@ fun ModuloCard(titulo: String, descripcion: String, iconRes: Int, color: Color, 
                 modifier = Modifier.size(56.dp).background(color.copy(alpha = 0.1f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Image(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = titulo,
-                    modifier = Modifier.size(30.dp)
-                )
+                Image(painter = painterResource(id = iconRes), contentDescription = titulo, modifier = Modifier.size(30.dp))
             }
             Column {
                 Text(titulo, fontWeight = FontWeight.Bold, fontSize = 18.sp)
@@ -311,6 +317,7 @@ fun ModuloCard(titulo: String, descripcion: String, iconRes: Int, color: Color, 
     }
 }
 
+// Tarjeta de estadística con fondo de color sólido, valor grande y título pequeño
 @Composable
 fun EstadisticaCard(titulo: String, valor: String, color: Color, modifier: Modifier = Modifier) {
     Card(modifier = modifier, shape = RoundedCornerShape(12.dp), elevation = CardDefaults.cardElevation(3.dp),

@@ -5,10 +5,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
+// Componentes principales de Navigation Compose
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+// Para declarar argumentos dinámicos en rutas (ej: {id})
 import androidx.navigation.navArgument
+// Todas las pantallas de la app
 import com.grupo5.cafeteriaapp.ui.screens.auth.LoginScreen
 import com.grupo5.cafeteriaapp.ui.screens.auth.RegisterScreen
 import com.grupo5.cafeteriaapp.ui.screens.dashboard.DashboardScreen
@@ -18,21 +21,25 @@ import com.grupo5.cafeteriaapp.ui.screens.producto.CrearProductoScreen
 import com.grupo5.cafeteriaapp.ui.screens.producto.DetalleProductoScreen
 import com.grupo5.cafeteriaapp.ui.screens.producto.EditarProductoScreen
 import com.grupo5.cafeteriaapp.ui.screens.producto.ListaProductosScreen
+// ViewModels necesarios
 import com.grupo5.cafeteriaapp.viewmodel.AuthViewModel
 import com.grupo5.cafeteriaapp.viewmodel.ProductoViewModel
 import com.grupo5.cafeteriaapp.viewmodel.ThemeViewModel
 
+// Objeto singleton que centraliza todas las rutas como constantes,
+// evitando strings sueltos por toda la app y facilitando el mantenimiento.
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val DASHBOARD = "dashboard"
     const val LISTA_PRODUCTOS = "lista_productos"
     const val CREAR_PRODUCTO = "crear_producto"
-    const val EDITAR_PRODUCTO = "editar_producto/{id}"
-    const val DETALLE_PRODUCTO = "detalle_producto/{id}"
+    const val EDITAR_PRODUCTO = "editar_producto/{id}"   // {id} es argumento dinámico
+    const val DETALLE_PRODUCTO = "detalle_producto/{id}" // {id} es argumento dinámico
     const val INVENTARIO = "inventario"
     const val PERFIL = "perfil"
 
+    // Helpers que construyen la ruta con el ID real para navegar
     fun editarProducto(id: String) = "editar_producto/$id"
     fun detalleProducto(id: String) = "detalle_producto/$id"
 }
@@ -40,12 +47,17 @@ object Routes {
 @Composable
 fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) {
     val navController = rememberNavController()
-    val prodViewModel: ProductoViewModel = viewModel()
+    val prodViewModel: ProductoViewModel = viewModel() // ViewModel compartido entre pantallas
+
+    // Decide la pantalla inicial según si el usuario ya tiene sesión activa
     val startDestination = if (authViewModel.isLoggedIn) Routes.DASHBOARD else Routes.LOGIN
+
+    // Observa el rol de admin como StateFlow para reaccionar a cambios en tiempo real
     val isAdmin by authViewModel.isAdmin.collectAsState()
 
     NavHost(navController = navController, startDestination = startDestination) {
 
+        // LOGIN: al entrar exitosamente limpia el backstack para que no se pueda regresar
         composable(Routes.LOGIN) {
             LoginScreen(
                 viewModel = authViewModel,
@@ -54,12 +66,11 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
-                onNavigateToRegister = {
-                    navController.navigate(Routes.REGISTER)
-                }
+                onNavigateToRegister = { navController.navigate(Routes.REGISTER) }
             )
         }
 
+        // REGISTER: al registrarse también limpia el backstack hasta LOGIN
         composable(Routes.REGISTER) {
             RegisterScreen(
                 viewModel = authViewModel,
@@ -72,6 +83,7 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
             )
         }
 
+        // DASHBOARD: pantalla principal; el logout limpia todo el backstack
         composable(Routes.DASHBOARD) {
             DashboardScreen(
                 onNavigateProductos = { navController.navigate(Routes.LISTA_PRODUCTOS) },
@@ -99,7 +111,7 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
             )
         }
 
-        // Solo admin puede llegar aquí
+        // CREAR PRODUCTO: protegido por rol; si no es admin regresa inmediatamente
         composable(Routes.CREAR_PRODUCTO) {
             if (isAdmin) {
                 CrearProductoScreen(
@@ -112,11 +124,12 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
             }
         }
 
+        // EDITAR PRODUCTO: recibe el ID como argumento de navegación tipo String
         composable(
             route = Routes.EDITAR_PRODUCTO,
             arguments = listOf(navArgument("id") { type = NavType.StringType })
         ) { backStack ->
-            val id = backStack.arguments?.getString("id") ?: ""
+            val id = backStack.arguments?.getString("id") ?: "" // "" como fallback si es null
             if (isAdmin) {
                 EditarProductoScreen(
                     productoId = id,
@@ -129,6 +142,7 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
             }
         }
 
+        // DETALLE PRODUCTO: accesible para todos; editar/eliminar solo visible si isAdmin
         composable(
             route = Routes.DETALLE_PRODUCTO,
             arguments = listOf(navArgument("id") { type = NavType.StringType })
@@ -145,10 +159,7 @@ fun AppNavigation(authViewModel: AuthViewModel, themeViewModel: ThemeViewModel) 
         }
 
         composable(Routes.INVENTARIO) {
-            InventarioScreen(
-                viewModel = prodViewModel,
-                onBack = { navController.popBackStack() }
-            )
+            InventarioScreen(viewModel = prodViewModel, onBack = { navController.popBackStack() })
         }
 
         composable(Routes.PERFIL) {
