@@ -41,8 +41,10 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
         .mapValues { entry -> entry.value.sumOf { it.stock } }
         .entries.sortedByDescending { it.value }
 
-    // Valor máximo de stock entre categorías; usado para calcular el ancho relativo de las barras
-    val maxStock = stockPorCategoria.maxOfOrNull { it.value } ?: 1
+    // Si todos los productos tienen stock 0, maxOfOrNull devuelve 0 (no null),
+    // por lo que el ?: 1 no se activaría y causaría división 0/0 = NaN → crash.
+    // takeIf { it > 0 } convierte el 0 en null para que el fallback ?: 1 sí aplique.
+    val maxStock = (stockPorCategoria.maxOfOrNull { it.value } ?: 0).takeIf { it > 0 } ?: 1
 
     Scaffold(
         topBar = {
@@ -91,8 +93,9 @@ fun InventarioScreen(viewModel: ProductoViewModel, onBack: () -> Unit) {
                                     modifier = Modifier.padding(bottom = 12.dp))
 
                                 stockPorCategoria.forEach { (categoria, total) ->
-                                    // Porcentaje relativo al máximo para calcular el ancho de la barra
-                                    val porcentaje = total.toFloat() / maxStock.toFloat()
+                                    // Doble protección: aunque maxStock ya nunca será 0 gracias al fix anterior,
+                                    // se guarda el caso borde por si total también es 0, mostrando barra vacía en vez de crashear.
+                                    val porcentaje = if (maxStock > 0) total.toFloat() / maxStock.toFloat() else 0f
                                     Row(
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                         verticalAlignment = Alignment.CenterVertically
